@@ -4,6 +4,11 @@
   "type": "module",
   "main": "index.js",
   "description": "BCore's extendable esbuild bundler configuration utility.",
+  "repository": {
+    "url": "https://github.com/Bloomstack/bcore-bundler.git",
+    "type": "git"
+  },
+  "homepage": "https://bloomstack.com",
   "license": "MIT",
   "bin": {
     "bcore-bundler": "./cli.js"
