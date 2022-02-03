@@ -7,7 +7,7 @@ import { isMain } from './utils.js';
 import { bundle } from "./index.js";
 
 
-async function cli(meta, configure) {
+export async function cli(meta, configure) {
 	return yargs(hideBin(process.argv))
 		.command('bundle [path]', 'Bundle a stack', (yargs) => {
 			return yargs

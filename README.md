@@ -36,7 +36,7 @@ If you want to modify the esbuild configuration object you can import the builde
 
 Lets say you want to reuse the cli. In your codebase add ./cli.js:
 ```js
-import { cli } from "bcore-builder/cli.js"
+import { cli } from "@bloomstack/bcore-bundler/cli.js"
 
 await cli(import.meta, (config) => {
   // You can modify config here and return it.
@@ -52,7 +52,7 @@ await cli(import.meta, (config) => {
 
 Otherwise, if you want to build your own cli interface and only require running builds and/or watching for file changes. In your code base add ./builder.js:
 ```js
-import { build } from "bcore-builder";
+import { build } from "@bloomstack/bcore-bundler";
 
 await build({
   stack,                // The root path of your bcore application in your file
