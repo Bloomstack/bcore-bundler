@@ -1,6 +1,6 @@
 {
   "name": "@bloomstack/bcore-bundler",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "index.js",
   "description": "BCore's extendable esbuild bundler configuration utility.",
@@ -15,15 +15,15 @@
   "license": "MIT",
   "bin": {
     "bcore-bundler": "./cli.js"
-  }, 
+  },
   "dependencies": {
-    "fs-extra": "^10.0.0",
     "esbuild": "^0.13.13",
     "esbuild-plugin-copy": "^0.3.0",
     "esbuild-plugin-less": "^1.1.6",
     "esbuild-plugin-postcss2": "^0.1.0",
     "esbuild-sass-plugin": "^1.7.0",
     "esbuild-vue": "^0.4.0",
+    "fs-extra": "^10.0.0",
     "yargs": "^17.2.1"
   }
 }
