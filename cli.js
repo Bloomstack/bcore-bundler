@@ -6,8 +6,13 @@ import path, { sep } from "path";
 import { isMain } from './utils.js';
 import { bundle } from "./index.js";
 
-
-export async function cli(meta, configure) {
+/**
+ * Invokes the bcore cli parser to handle terminal commands.
+ * @param {*} meta The current import.meta where this function is invoked from.
+ * @param {function} configure A callback function that is called just before bundling to allow configuration overrides.
+ * @param {object} externalMap An externals to globals maping object. Internally passed to the esbuild-plugin-external-global plugin.
+ */
+export async function cli(meta, configure, externalMap) {
 	return yargs(hideBin(process.argv))
 		.command('bundle [path]', 'Bundle a stack', (yargs) => {
 			return yargs
@@ -47,7 +52,8 @@ export async function cli(meta, configure) {
 					format: argv.format,
 					analyze: argv.analyze,
 					minify: argv.minify,
-					configure: configure
+					configure: configure,
+					externalMap
 				});
 			} catch(err) {
 				console.error(err);
@@ -87,7 +93,8 @@ export async function cli(meta, configure) {
 					format: argv.format,
 					analyze: false,
 					minify: argv.minify,
-					configure: configure
+					configure: configure,
+					externalMap
 				});
 			} catch(err) {
 				console.error(err);

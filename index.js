@@ -1,8 +1,9 @@
 import path, { sep } from "path";
-import { emptyDir, copy } from 'fs-extra';
 import glob from 'fast-glob';
+import { emptyDir, copy } from 'fs-extra';
 import { build, analyzeMetafile } from 'esbuild';
 import vuePlugin from 'esbuild-vue';
+import ExternalGlobalsPlugin from "esbuild-plugin-external-global";
 import { skypackPlugin } from './plugins/skypack.js';
 import { htmlTemplatePlugin } from './plugins/htmlTemplate.js';
 import { ignoreAssets } from './plugins/assets.js';
@@ -12,6 +13,9 @@ import { lessLoader } from 'esbuild-plugin-less';
 import { getScriptMeta } from './utils.js';
 import { readFile } from "fs/promises";
 import { createServer } from "http";
+import LessPluginImportNodeModules from "less-plugin-import-node-modules";
+import postcss from "postcss";
+import autoprefixer from "autoprefixer";
 
 /**
  * Builds glob pattern to find all buildable files.
@@ -28,9 +32,9 @@ export function buildIncludePatterns(root_path) {
 	];
 }
 
-export function buildNodeModulePaths(stack) {
+export function buildNodeModulePaths(stackPath) {
 	const nodePaths = [
-		path.resolve(`${stack}/node_modules`)
+		path.resolve(`${stackPath}/node_modules`)
 	];
 	return nodePaths;
 }
@@ -38,15 +42,17 @@ export function buildNodeModulePaths(stack) {
 /**
  * @typedef {object} BundleConfig
  * @property {string} stackPath The stack path
- * @property {boolean} watch Wether to watch for file changes and automatically rebuild bundles.
+ * @property {boolean} watch	Wether to watch for file changes and automatically rebuild bundles.
  * @property {boolean} production When true, will minify and prepare bundles for production
- * @property {string} format Enables bundling in different formats. Supports esm and cjs.
+ * @property {string} format	Enables bundling in different formats. Supports esm and cjs.
  * 														Defaults to cjs
- * @property {boolean} analyze Outputs bundle sizes and reports on internal package size
- * 														that make up the bundle.
- * @property {boolean} minify When true, minifies the bundle.
- * @property {function} configure When provided the build will pass the configuration
- * 											object before start bundling to allow modifying the configuration.
+ * @property {boolean} analyze	Outputs bundle sizes and reports on internal package size
+ * 															that make up the bundle.
+ * @property {boolean} minify	When true, minifies the bundle.
+ * @property {object} externalMap	An object mapping packages to externalize. Internally this map
+ * 																is passed directed to the esbuild-plugin-external-global plugin.
+ * @property {function} configure	When provided the build will pass the configuration
+ 					* 											object before start bundling to allow modifying the configuration.
  */
 
 /**
@@ -54,24 +60,36 @@ export function buildNodeModulePaths(stack) {
  * @param {BundleConfig} config Bundle configuration object.
  * @returns Promise<void>
  */
-export async function bundle({stackPath, watch=false, production=false, format="cjs", analyze=false, minify=false, configure}) {
+export async function bundle({stackPath, watch=false, production=false, format="cjs", analyze=false, minify=false, externalMap={}, configure}) {
 	const { __dirname } = getScriptMeta(import.meta);
 	const packages = JSON.parse((await readFile(path.resolve(stackPath, "package.json"))).toString());
 	const entryPoints = await glob(buildIncludePatterns(stackPath));
-	const distribute_packages = (packages.bcore || {}).distribute || [];
 	const nodePaths = buildNodeModulePaths(stackPath);
 	const outdir = path.resolve(`${stackPath}/${production ? 'dist' : 'build'}`);
-	const external = distribute_packages;
 	const clients = [];
 
+	const distribute = (packages.bcore || {}).distribute || {};
+	const externals = [];
+	const globalExternalsMap = {
+		...externalMap
+	};
+
 	const reloadBrowser = (error, result) => {
+		console.log(`Changes detected, sending reload signal to ${clients.length} clients`);
+		const data = {
+			success: !!!error,
+			errors: error?error.errors:[],
+			warnings: error?error.warnings:[]
+		}
 		clients.forEach((res) => res.write(`data: ${JSON.stringify(data)}\n\n`));
-		clients.length = 0;
 		if ( error ) {
 			for(const msg in error.errors) {
 				console.log(msg.text);
 			}
-		}	
+		}	else {
+			// expecting client to reload...
+			clients.length = 0;
+		}
 	}
 
 	console.log(`- Building: ${format} ${outdir}`);
@@ -79,11 +97,23 @@ export async function bundle({stackPath, watch=false, production=false, format="
 	await emptyDir(outdir);
 
 	const copyPromises = [];
-	for (const pkg of distribute_packages) {
-		const copyPath = path.resolve(stackPath, "node_modules", pkg);
-		const dest = path.join(outdir, "thirdparty", pkg);
-		console.log(`- [COPY]: ${copyPath} => ${dest}`);
-		copyPromises.push(copy(copyPath, dest));
+	for(const [key, map] of Object.entries(distribute)) {
+		if ( map.files != undefined ) {
+			const copyPath = path.resolve(stackPath, "node_modules", map.files);
+			const dest = path.join(outdir, "thirdparty", map.files);
+			console.log(`- [COPY]: ${copyPath} => ${dest}`);
+			copyPromises.push(copy(copyPath, dest));
+		}
+
+		if ( map.global ) {
+			globalExternalsMap[key] = map.global;
+		}
+
+		if ( map.external ) {
+			externals.push(map.external);
+		} else {
+			externals.push(key);
+		}
 	}
 
 	Promise.allSettled(copyPromises);
@@ -103,7 +133,6 @@ export async function bundle({stackPath, watch=false, production=false, format="
 				'.eot': 'file',
 				'.ttf': 'file'
 			},
-			external,
 			inject: [
 				path.resolve(path.join(__dirname, 'shims', 'react-shim.js')),
 				path.resolve(path.join(__dirname, 'shims', 'vue-shim.js')),
@@ -117,6 +146,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 			format: format,
 			legalComments: "linked",
 			logLevel: "info",
+			external: externals,
 			plugins: [
 				pathResolve(stackPath),
 				htmlTemplatePlugin(),
@@ -127,6 +157,9 @@ export async function bundle({stackPath, watch=false, production=false, format="
 						})
 					]) || []
 				),
+				ExternalGlobalsPlugin.externalGlobalPlugin({
+					...globalExternalsMap
+				}),
 				vuePlugin(),
 				sassPlugin({
 					filter: /\.bundle\.scss$/,
@@ -135,10 +168,16 @@ export async function bundle({stackPath, watch=false, production=false, format="
 				}),
 				sassPlugin({
 					type: "css-text",
-					sourceMap: production
+					sourceMap: production,
+					async transform(source) {
+						const { css } = await postcss([autoprefixer]).process(source);
+						return css;
+					},
 				}),
 				lessLoader({
-					sourceMap: production
+					filter: /\.bundle\.less$/,
+					sourceMap: production,
+					plugins: [new LessPluginImportNodeModules()]
 				})
 			],
 			define: {
@@ -147,6 +186,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 			...( (watch && {
 					watch: {
 						onRebuild: reloadBrowser,
+						
 					}
 				}) || {}
 			)
@@ -158,23 +198,50 @@ export async function bundle({stackPath, watch=false, production=false, format="
 		}
 
 		// start bundling
-		const result = await build(config);
+		const buildPromise = build(config);
+		buildPromise
+			.then((r) => reloadBrowser(null, r))
+			.catch((err) => {
+				console.error(err);
+				process.exit(1);
+			});
 
 		// when we are watching for changes start the reload server trigger
 		if ( watch ) {
-			reloadBrowser(null, result)
+			// reloadBrowser(null, result);
 
+			console.log("Sending messages at http://localhost:7000");
 			createServer((req, res) => {
-				return clients.push(
-					res.writeHead(200, {
-						"Content-Type": "text/event-stream",
-						"Cache-Control": "no-cache",
-						"Access-Control-Allow-Origin": "*",
-						Connection: "keep-alive",
-					}),
-				);
+				console.log("Dev client connected!");
+				const dropClient = (res) => {
+					const index = clients.indexOf(res);
+					if ( index > -1 ) {
+						clients.splice(index, 1);
+					}
+				}
+
+				req.on("close", function() {
+					console.warn("Dev client disconnected unexpectedly.");
+					dropClient(res);
+				});
+				
+				req.on("end", function() {
+					console.log("Dev client disconnected.");
+					dropClient(res);
+				});
+
+				res.writeHead(200, {
+					"Content-Type": "text/event-stream",
+					"Cache-Control": "no-cache",
+					"Access-Control-Allow-Origin": "*",
+					Connection: "keep-alive",
+				})
+
+				return clients.push(res);
 			}).listen(7000);
 		}
+
+		const result = await buildPromise;
 
 		if (analyze) {
 			let text = await analyzeMetafile(result.metafile, {
