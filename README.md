@@ -55,11 +55,11 @@ Otherwise, if you want to build your own cli interface and only require running 
 import { build } from "@bloomstack/bcore-bundler";
 
 await build({
-  stack,                // The root path of your bcore application in your file
+  path: ".",            // The root path of your bcore application in your file
                         // system. This defaults to the current working director.
   watch: false,         // set to true to watch instead of only bundling.
-  is_production=false,  // set to true to bundle into ./dist folder and minify.
-  format="cjs",         // set to cjs or esm to change file format. Defaults to
+  production: false,    // set to true to bundle into ./dist folder and minify.
+  format: "cjs",        // set to cjs or esm to change file format. Defaults to
                         // cjs for now.
   analyze: false,       // set to true if you would like to see a detailed bundle
                         // statistics.
