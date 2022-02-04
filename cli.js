@@ -81,9 +81,9 @@ export async function cli(meta, configure) {
 			if (argv.verbose) console.info(`[Watching] ${argv.path}`)
 			try {
 				await bundle({
-					stack: path.resolve(argv.path),
+					stackPath: path.resolve(argv.path),
 					watch: true,
-					is_production: argv.production,
+					production: argv.production,
 					format: argv.format,
 					analyze: false,
 					minify: argv.minify,
