@@ -32,8 +32,9 @@ export function buildIncludePatterns(root_path) {
 	];
 }
 
-export function buildNodeModulePaths(stackPath) {
+export function buildNodeModulePaths(stackPath, libPath) {
 	const nodePaths = [
+		path.resolve(`${libPath}/node_modules`),
 		path.resolve(`${stackPath}/node_modules`)
 	];
 	return nodePaths;
@@ -64,7 +65,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 	const { __dirname } = getScriptMeta(import.meta);
 	const packages = JSON.parse((await readFile(path.resolve(stackPath, "package.json"))).toString());
 	const entryPoints = await glob(buildIncludePatterns(stackPath));
-	const nodePaths = buildNodeModulePaths(stackPath);
+	const nodePaths = buildNodeModulePaths(stackPath, __dirname);
 	const outdir = path.resolve(`${stackPath}/${production ? 'dist' : 'build'}`);
 	const clients = [];
 
