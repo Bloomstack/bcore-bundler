@@ -1,6 +1,6 @@
 {
   "name": "@bloomstack/bcore-bundler",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "main": "index.js",
   "description": "BCore's extendable esbuild bundler configuration utility.",
@@ -23,7 +23,7 @@
     "esbuild-plugin-external-global": "^1.0.1",
     "esbuild-plugin-less": "^1.1.6",
     "esbuild-plugin-postcss2": "^0.1.0",
-    "esbuild-sass-plugin": "^1.7.0",
+    "esbuild-sass-plugin": "^2.2.2",
     "esbuild-vue": "^0.4.0",
     "fs-extra": "^10.0.0",
     "less": "^4.1.2",

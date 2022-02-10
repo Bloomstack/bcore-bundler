@@ -150,22 +150,14 @@ export async function bundle({stackPath, watch=false, production=false, format="
 			external: externals,
 			plugins: [
 				pathResolve(stackPath),
-				htmlTemplatePlugin(),
-				ignoreAssets(),
-				...((format == "esm" && [
-						skypackPlugin({
-							stack: stackPath
-						})
-					]) || []
-				),
-				ExternalGlobalsPlugin.externalGlobalPlugin({
-					...globalExternalsMap
-				}),
-				vuePlugin(),
 				sassPlugin({
 					filter: /\.bundle\.scss$/,
 					type: "css",
-					sourceMap: production
+					sourceMap: production,
+					async transform(source) {
+						const { css } = await postcss([autoprefixer]).process(source);
+						return css;
+					},
 				}),
 				sassPlugin({
 					type: "css-text",
@@ -179,7 +171,19 @@ export async function bundle({stackPath, watch=false, production=false, format="
 					filter: /\.bundle\.less$/,
 					sourceMap: production,
 					plugins: [new LessPluginImportNodeModules()]
-				})
+				}),
+				htmlTemplatePlugin(),
+				ignoreAssets(),
+				...((format == "esm" && [
+						skypackPlugin({
+							stack: stackPath
+						})
+					]) || []
+				),
+				ExternalGlobalsPlugin.externalGlobalPlugin({
+					...globalExternalsMap
+				}),
+				vuePlugin(),
 			],
 			define: {
 				"process.env.NODE_ENV": JSON.stringify(production?"production":"development"),
@@ -231,6 +235,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 					dropClient(res);
 				});
 
+				res.setHeader('Access-Control-Allow-Origin', '*');
 				res.writeHead(200, {
 					"Content-Type": "text/event-stream",
 					"Cache-Control": "no-cache",
