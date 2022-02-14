@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.2",
-    "esbuild": "^0.13.13",
+    "esbuild": "^0.14.21",
     "esbuild-plugin-copy": "^0.3.0",
     "esbuild-plugin-external-global": "^1.0.1",
     "esbuild-plugin-less": "^1.1.6",

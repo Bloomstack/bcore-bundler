@@ -8,6 +8,7 @@ import { skypackPlugin } from './plugins/skypack.js';
 import { htmlTemplatePlugin } from './plugins/htmlTemplate.js';
 import { ignoreAssets } from './plugins/assets.js';
 import { pathResolve } from './plugins/pathResolve.js';
+import { bundleMap } from "./plugins/bundleMap.js";
 import { sassPlugin } from 'esbuild-sass-plugin';
 import { lessLoader } from 'esbuild-plugin-less';
 import { getScriptMeta } from './utils.js';
@@ -61,12 +62,13 @@ export function buildNodeModulePaths(stackPath, libPath) {
  * @param {BundleConfig} config Bundle configuration object.
  * @returns Promise<void>
  */
-export async function bundle({stackPath, watch=false, production=false, format="cjs", analyze=false, minify=false, externalMap={}, configure}) {
+export async function bundle({ stackPath, watch = false, production = false, format = "cjs", analyze = false, minify = false, externalMap = {}, configure }) {
 	const { __dirname } = getScriptMeta(import.meta);
 	const packages = JSON.parse((await readFile(path.resolve(stackPath, "package.json"))).toString());
 	const entryPoints = await glob(buildIncludePatterns(stackPath));
 	const nodePaths = buildNodeModulePaths(stackPath, __dirname);
-	const outdir = path.resolve(`${stackPath}/${production ? 'dist' : 'build'}`);
+	const buildDirName = production ? 'dist' : 'build';
+	const outdir = path.resolve(`${stackPath}/${buildDirName}`);
 	const clients = [];
 
 	const distribute = (packages.bcore || {}).distribute || {};
@@ -79,15 +81,15 @@ export async function bundle({stackPath, watch=false, production=false, format="
 		console.log(`Changes detected, sending reload signal to ${clients.length} clients`);
 		const data = {
 			success: !!!error,
-			errors: error?error.errors:[],
-			warnings: error?error.warnings:[]
+			errors: error ? error.errors : [],
+			warnings: error ? error.warnings : []
 		}
 		clients.forEach((res) => res.write(`data: ${JSON.stringify(data)}\n\n`));
-		if ( error ) {
-			for(const msg in error.errors) {
+		if (error) {
+			for (const msg in error.errors) {
 				console.log(msg.text);
 			}
-		}	else {
+		} else {
 			// expecting client to reload...
 			clients.length = 0;
 		}
@@ -98,19 +100,19 @@ export async function bundle({stackPath, watch=false, production=false, format="
 	await emptyDir(outdir);
 
 	const copyPromises = [];
-	for(const [key, map] of Object.entries(distribute)) {
-		if ( map.files != undefined ) {
+	for (const [key, map] of Object.entries(distribute)) {
+		if (map.files != undefined) {
 			const copyPath = path.resolve(stackPath, "node_modules", map.files);
 			const dest = path.join(outdir, "thirdparty", map.files);
 			console.log(`- [COPY]: ${copyPath} => ${dest}`);
 			copyPromises.push(copy(copyPath, dest));
 		}
 
-		if ( map.global ) {
+		if (map.global) {
 			globalExternalsMap[key] = map.global;
 		}
 
-		if ( map.external ) {
+		if (map.external) {
 			externals.push(map.external);
 		} else {
 			externals.push(key);
@@ -149,6 +151,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 			logLevel: "info",
 			external: externals,
 			plugins: [
+				bundleMap(),
 				pathResolve(stackPath),
 				sassPlugin({
 					filter: /\.bundle\.scss$/,
@@ -175,10 +178,10 @@ export async function bundle({stackPath, watch=false, production=false, format="
 				htmlTemplatePlugin(),
 				ignoreAssets(),
 				...((format == "esm" && [
-						skypackPlugin({
-							stack: stackPath
-						})
-					]) || []
+					skypackPlugin({
+						stack: stackPath
+					})
+				]) || []
 				),
 				ExternalGlobalsPlugin.externalGlobalPlugin({
 					...globalExternalsMap
@@ -186,19 +189,19 @@ export async function bundle({stackPath, watch=false, production=false, format="
 				vuePlugin(),
 			],
 			define: {
-				"process.env.NODE_ENV": JSON.stringify(production?"production":"development"),
+				"process.env.NODE_ENV": JSON.stringify(production ? "production" : "development"),
 			},
-			...( (watch && {
-					watch: {
-						onRebuild: reloadBrowser,
-						
-					}
-				}) || {}
+			...((watch && {
+				watch: {
+					onRebuild: reloadBrowser,
+
+				}
+			}) || {}
 			)
 		};
 
 		// allow apps to modify builder configuration
-		if ( typeof configure === "function" ) {
+		if (typeof configure === "function") {
 			config = configure(config);
 		}
 
@@ -212,7 +215,7 @@ export async function bundle({stackPath, watch=false, production=false, format="
 			});
 
 		// when we are watching for changes start the reload server trigger
-		if ( watch ) {
+		if (watch) {
 			// reloadBrowser(null, result);
 
 			console.log("Sending messages at http://localhost:7000");
@@ -220,17 +223,17 @@ export async function bundle({stackPath, watch=false, production=false, format="
 				console.log("Dev client connected!");
 				const dropClient = (res) => {
 					const index = clients.indexOf(res);
-					if ( index > -1 ) {
+					if (index > -1) {
 						clients.splice(index, 1);
 					}
 				}
 
-				req.on("close", function() {
+				req.on("close", function () {
 					console.warn("Dev client disconnected unexpectedly.");
 					dropClient(res);
 				});
-				
-				req.on("end", function() {
+
+				req.on("end", function () {
 					console.log("Dev client disconnected.");
 					dropClient(res);
 				});
