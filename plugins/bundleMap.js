@@ -5,8 +5,6 @@ export const bundleMap = (config) => {
   return {
     name: "bundle-map",
     setup(build) {
-      console.log(build);
-
       const options = build.initialOptions;
       const buildDirName = options.outdir.substring(options.outbase.length);
       const metaFilePath = path.join(options.outdir, "bundle.map.json");
@@ -16,7 +14,7 @@ export const bundleMap = (config) => {
           const map = Object.entries(result.metafile.outputs).reduce((p, [key, value]) => {
             if ( key.substring(key.length - 4) != ".map" ) {
               if ( value.entryPoint ) {
-                const entryPoint = '/dist/' + value.entryPoint;// '/dist/' + value.entryPoint.substring(buildDirName.length);
+                const entryPoint = '/dist/' + value.entryPoint;
                 const filePath = '/dist/' + key.substring(buildDirName.length);
                 p[entryPoint] = filePath;
               }
