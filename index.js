@@ -142,7 +142,7 @@ export async function bundle({ stackPath, watch = false, production = false, for
 			],
 			outdir,
 			outbase: stackPath,
-			sourcemap: "external",
+			sourcemap: true, 	// link source files
 			metafile: true,
 			minify: minify || production,
 			nodePaths,
