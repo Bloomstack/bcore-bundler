@@ -177,12 +177,6 @@ export async function bundle({ stackPath, watch = false, production = false, for
 				}),
 				htmlTemplatePlugin(),
 				ignoreAssets(),
-				...((format == "esm" && [
-					skypackPlugin({
-						stack: stackPath
-					})
-				]) || []
-				),
 				ExternalGlobalsPlugin.externalGlobalPlugin({
 					...globalExternalsMap
 				}),

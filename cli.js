@@ -30,7 +30,7 @@ export async function cli(meta, configure, externalMap) {
 					alias: "f",
 					type: "string",
 					desc: "Sets the compilation format. Options: esm, cjs",
-					default: "cjs"
+					default: "esm"
 				})
 				.option("minify", {
 					alias: "m",
@@ -81,7 +81,7 @@ export async function cli(meta, configure, externalMap) {
 					alias: "f",
 					type: "string",
 					desc: "Sets the compilation format. Options: esm, cjs",
-					default: "cjs"
+					default: "esm"
 				})
 		}, async (argv) => {
 			if (argv.verbose) console.info(`[Watching] ${argv.path}`)
