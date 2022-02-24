@@ -59,8 +59,8 @@ await build({
                         // system. This defaults to the current working director.
   watch: false,         // set to true to watch instead of only bundling.
   production: false,    // set to true to bundle into ./dist folder and minify.
-  format: "cjs",        // set to cjs or esm to change file format. Defaults to
-                        // cjs for now.
+  format: "esm",        // set to cjs or esm to change file format. Defaults to
+                        // esm for now.
   analyze: false,       // set to true if you would like to see a detailed bundle
                         // statistics.
   minify: false,        // set to true if you want bundles minified irrespective of
@@ -88,4 +88,3 @@ await build({
 
   ... use css string some how ...
   ```
-- Experimental esm bundling included for future use.

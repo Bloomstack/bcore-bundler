@@ -70,6 +70,7 @@ export async function bundle({ stackPath, watch = false, production = false, for
 	const buildDirName = production ? 'dist' : 'build';
 	const outdir = path.resolve(`${stackPath}/${buildDirName}`);
 	const clients = [];
+	const stackName = path.basename(stackPath);
 
 	const distribute = (packages.bcore || {}).distribute || {};
 	const externals = [];
@@ -151,7 +152,7 @@ export async function bundle({ stackPath, watch = false, production = false, for
 			logLevel: "info",
 			external: externals,
 			plugins: [
-				bundleMap(),
+				bundleMap({ stackName }),
 				pathResolve(stackPath),
 				sassPlugin({
 					filter: /\.bundle\.scss$/,

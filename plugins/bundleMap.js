@@ -7,7 +7,7 @@ export const bundleMap = (config) => {
     setup(build) {
       const options = build.initialOptions;
       const buildDirName = options.outdir.substring(options.outbase.length);
-      const metaFilePath = path.join(options.outdir, "bundle.map.json");
+      const metaFilePath = path.join(options.outdir, `${config.stackName}.map.json`);
 
       build.onEnd(async result => {
         if ( result.metafile && result.metafile.outputs ) {
