@@ -67,7 +67,7 @@ export async function bundle({ stackPath, watch = false, production = false, for
 	const packages = JSON.parse((await readFile(path.resolve(stackPath, "package.json"))).toString());
 	const entryPoints = await glob(buildIncludePatterns(stackPath));
 	const nodePaths = buildNodeModulePaths(stackPath, __dirname);
-	const buildDirName = production ? 'dist' : 'build';
+	const buildDirName = production ? 'static' : 'build';
 	const outdir = path.resolve(`${stackPath}/${buildDirName}`);
 	const clients = [];
 	const stackName = path.basename(stackPath);
@@ -206,6 +206,9 @@ export async function bundle({ stackPath, watch = false, production = false, for
 			.then((r) => reloadBrowser(null, r))
 			.catch((err) => {
 				console.error(err);
+				if ( "errors" in err ) {
+					console.log(JSON.stringify(err.errors, undefined, 2));
+				}
 				process.exit(1);
 			});
 
